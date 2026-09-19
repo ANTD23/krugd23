@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14324B">
+<title>Круговая борьба</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+:root{
+  --ink:#101418;
+  --blue:#14324B;
+  --blue-deep:#0C2437;
+  --soft:#E9EFF4;
+  --line:#C7D2DB;
+  --paper:#FFFFFF;
+  --mat:#A8321F;
+  --muted:#5C6B77;
+  --pad:16px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:16px;line-height:1.45;
+  -webkit-text-size-adjust:100%;
+  display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;
+}
+main{flex:1 0 auto}
+button,input{font:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer}
+
+/* ---------- header ---------- */
+header{
+  background:var(--blue);color:#fff;
+  padding:calc(10px + env(safe-area-inset-top)) var(--pad) 10px;
+  display:flex;align-items:center;gap:12px;
+}
+header h1{
+  margin:0;font-size:17px;font-weight:600;letter-spacing:.01em;flex:1;
+}
+.cfg{
+  background:rgba(255,255,255,.12);color:#fff;
+  border-radius:8px;padding:7px 12px;font-size:14px;font-weight:500;
+  display:flex;align-items:center;gap:7px;min-height:36px;white-space:nowrap;
+}
+.wk{font-size:12px;font-weight:600;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,.18);color:#fff;white-space:nowrap}
+.wk{flex:0 0 auto}
+@media(max-width:400px){header{gap:8px}.cfg{padding:7px 9px}.cfg svg{display:none}}
+.wk.lost{background:var(--mat)}
+.cfg svg{width:15px;height:15px;flex:0 0 auto}
+
+/* ---------- tabs ---------- */
+.tabs{display:flex;background:var(--blue);padding:0 var(--pad) 0}
+.tabs button{
+  flex:1;padding:11px 4px 12px;color:rgba(255,255,255,.62);
+  font-size:15px;font-weight:500;border-bottom:3px solid transparent;
+}
+.tabs button[aria-selected="true"]{color:#fff;border-bottom-color:#fff}
+
+/* ---------- round view ---------- */
+main{padding:0 var(--pad)}
+header,.tabs,.nav{flex:0 0 auto}
+.rhead{
+  display:flex;align-items:baseline;gap:10px;
+  padding:18px 0 4px;border-bottom:1px solid var(--line);
+}
+.rhead .n{font-size:44px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.rhead .of{font-size:16px;color:var(--muted)}
+.rhead .label{font-size:16px;color:var(--muted);margin-right:auto}
+
+.pairs{list-style:none;margin:16px 0 0;padding:0;
+  display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:520px){.pairs{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:760px){.pairs{grid-template-columns:repeat(4,1fr)}}
+.pairs li{
+  border:1.5px solid var(--blue);border-radius:7px;
+  display:flex;align-items:stretch;overflow:hidden;background:var(--paper);
+}
+.pairs span{
+  flex:1;text-align:center;padding:14px 2px;
+  font-size:32px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1;
+  color:var(--blue-deep);
+}
+.pairs span+span{border-left:1.5px solid var(--line)}
+
+.rest{margin:22px 0 0;padding:14px 0 0;border-top:1px solid var(--line)}
+.rest p{margin:0 0 9px;font-size:15px;color:var(--muted)}
+.rest ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.rest li{
+  min-width:52px;text-align:center;padding:8px 10px;
+  border:1.5px dashed var(--mat);border-radius:7px;
+  color:var(--mat);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;
+}
+.done{margin:22px 0 0;padding:14px;border:1.5px solid var(--blue);border-radius:8px;
+  background:var(--soft);font-size:15px}
+
+/* ---------- nav ---------- */
+.nav{
+  position:sticky;bottom:0;background:var(--paper);z-index:5;
+  border-top:1px solid var(--line);
+  display:flex;gap:10px;padding:10px var(--pad) calc(10px + env(safe-area-inset-bottom));
+  margin-top:24px;
+}
+.nav button{
+  flex:1;min-height:54px;border-radius:9px;font-size:17px;font-weight:600;
+  background:var(--blue);color:#fff;
+}
+.nav button.ghost{background:var(--soft);color:var(--blue-deep);flex:0 0 34%}
+.nav button:disabled{opacity:.32}
+
+/* ---------- table view ---------- */
+.tablewrap{overflow-x:auto;margin:16px 0 28px;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{border:1px solid var(--line);padding:6px 5px;text-align:center;font-size:14px;white-space:nowrap}
+thead th{background:var(--soft);font-weight:600;font-size:13px;position:sticky;top:0}
+tbody tr:nth-child(even) td{background:#F6F8FA}
+td.rn{font-weight:700}
+td.rs{color:var(--mat);white-space:normal;min-width:84px;font-size:13px}
+.tools{display:flex;gap:10px;padding:16px 0 0}
+.tools button{
+  flex:1;min-height:48px;border-radius:9px;font-size:16px;font-weight:600;
+  border:1.5px solid var(--blue);color:var(--blue-deep);background:var(--paper);
+}
+.note{margin:14px 0 0;font-size:14px;color:var(--muted)}
+
+/* ---------- settings sheet ---------- */
+.sheet{
+  position:fixed;inset:0;background:rgba(12,36,55,.45);
+  display:none;align-items:flex-end;justify-content:center;z-index:20;
+}
+.sheet.open{display:flex}
+.panel{
+  background:var(--paper);width:100%;max-width:520px;
+  border-radius:14px 14px 0 0;padding:20px var(--pad) calc(20px + env(safe-area-inset-bottom));
+  max-height:92vh;overflow:auto;
+}
+@media(min-width:560px){.sheet{align-items:center}.panel{border-radius:14px}}
+.panel h2{margin:0 0 4px;font-size:20px;font-weight:700}
+.panel .sub{margin:0 0 18px;color:var(--muted);font-size:14px}
+.field{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.field label{flex:1;font-size:16px}
+.step{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:9px;overflow:hidden}
+.step button{width:46px;height:46px;font-size:24px;font-weight:600;color:var(--blue-deep);background:var(--soft)}
+.step input{
+  width:56px;height:46px;text-align:center;border:0;
+  font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;background:var(--paper);
+}
+.step input::-webkit-outer-spin-button,.step input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.step input[type=number]{-moz-appearance:textfield}
+.hint{font-size:14px;color:var(--muted);padding:2px 0 12px}
+.hint.bad{color:var(--mat)}
+.go{
+  width:100%;min-height:54px;border-radius:9px;margin-top:14px;
+  background:var(--blue);color:#fff;font-size:17px;font-weight:600;
+}
+.go:disabled{opacity:.4}
+.close{width:100%;min-height:44px;margin-top:8px;color:var(--muted);font-size:15px}
+.stats{border-top:1px solid var(--line);margin-top:16px;padding-top:12px;font-size:14px;color:var(--muted)}
+.stats div{display:flex;justify-content:space-between;padding:3px 0}
+.stats b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.wake{display:flex;align-items:center;gap:10px;padding:12px 0 0;border-top:1px solid var(--line);margin-top:12px}
+.wake input{width:22px;height:22px}
+.wake label{font-size:15px}
+
+.busy{padding:40px 0;text-align:center;color:var(--muted)}
+[hidden]{display:none !important}
+
+@media(prefers-reduced-motion:no-preference){
+  .fade{animation:f .16s ease-out}
+  @keyframes f{from{opacity:.3;transform:translateY(4px)}to{opacity:1;transform:none}}
+}
+
+/* ---------- print ---------- */
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  header,.tabs,.nav,.tools,.sheet,.note,#scrollHint{display:none !important}
+  main{padding:0}
+  .tablewrap{overflow:visible;margin:0}
+  #view-round{display:none !important}
+  #view-table{display:block !important}
+  .printhead{display:block !important;margin:0 0 8px}
+  table{font-size:11px}
+  th,td{padding:3px 4px;border:1px solid #000}
+  thead th{background:#e0e0e0 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  tbody tr:nth-child(even) td{background:#f2f2f2 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  td.rs{color:#000}
+  thead{display:table-header-group}
+  tr{page-break-inside:avoid}
+}
+.printhead{display:none}
+.printhead h2{margin:0;font-size:15px}
+.printhead p{margin:2px 0 0;font-size:11px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Круговая борьба</h1>
+  <span class="wk" id="wakeBadge" hidden></span>
+  <button class="cfg" id="cfgBtn" aria-haspopup="dialog">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.88.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.33-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.56V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v0a1.7 1.7 0 0 0 1.56 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/>
+    </svg>
+    <span id="cfgLabel">15 борцов, 7 пар</span>
+  </button>
+</header>
+
+<div class="tabs" role="tablist">
+  <button role="tab" id="tabRound" aria-selected="true" aria-controls="view-round">Раунд</button>
+  <button role="tab" id="tabTable" aria-selected="false" aria-controls="view-table">Таблица</button>
+</div>
+
+<main>
+  <section id="view-round" role="tabpanel">
+    <div class="rhead">
+      <span class="label">Раунд</span>
+      <span class="n" id="rNum">1</span>
+      <span class="of" id="rOf">из 15</span>
+    </div>
+    <ul class="pairs" id="pairs"></ul>
+    <div class="rest" id="restBlock">
+      <p id="restLabel">Отдыхает</p>
+      <ul id="restList"></ul>
+    </div>
+    <div class="done" id="doneMsg" hidden>Круг пройден: каждый поборолся с каждым.</div>
+  </section>
+
+  <section id="view-table" role="tabpanel" hidden>
+    <div class="printhead" id="printHead"></div>
+    <p class="note" id="scrollHint" style="margin:14px 0 6px">Таблицу можно листать вбок.</p>
+      <div class="tablewrap"><table id="grid"></table></div>
+    <div class="tools">
+      <button id="printBtn">Распечатать</button>
+    </div>
+    <p class="note" id="tableNote"></p>
+  </section>
+</main>
+
+<div class="nav" id="nav">
+  <button class="ghost" id="prevBtn">Назад</button>
+  <button id="nextBtn">Дальше</button>
+</div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="panel">
+    <h2 id="sheetTitle">Состав группы</h2>
+    <p class="sub">Постройте группу в шеренгу и рассчитайте по порядку. Дальше вызывайте только по номерам.</p>
+
+    <div class="field">
+      <label for="inpN">Спортсменов</label>
+      <div class="step">
+        <button type="button" data-step="n-1" aria-label="Меньше">−</button>
+        <input id="inpN" type="number" inputmode="numeric" min="4" max="30" value="15">
+        <button type="button" data-step="n+1" aria-label="Больше">+</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="inpP">Пар за раунд</label>
+      <div class="step">
+        <button type="button" data-step="p-1" aria-label="Меньше">−</button>
+        <input id="inpP" type="number" inputmode="numeric" min="1" max="15" value="7">
+        <button type="button" data-step="p+1" aria-label="Больше">+</button>
+      </div>
+    </div>
+
+    <p class="hint" id="hint"></p>
+
+    <div class="stats" id="stats" hidden></div>
+    <div class="wake" id="wakeRow">
+      <input type="checkbox" id="wakeChk" autocomplete="off">
+      <label for="wakeChk">Не гасить экран во время тренировки</label>
+    </div>
+    <p class="hint" id="wakeMsg"></p>
+
+    <button class="go" id="goBtn">Составить расписание</button>
+    <button class="close" id="closeBtn">Закрыть</button>
+  </div>
+</div>
+
+<video id="keepVid" muted playsinline loop preload="auto" aria-hidden="true"
+  style="position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:.01;pointer-events:none;z-index:1">
+  <source src="data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAH9EU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHYTbuMU6uEElTDZ1OsggEeTbuMU6uEHFO7a1OsggHn7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsirXsYMPQkBNgI1MYXZmNjAuMTYuMTAwV0GNTGF2ZjYwLjE2LjEwMESJiECfQAAAAAAAFlSua8GuAQAAAAAAADjXgQFzxYgmTtBb+rOWqZyBACK1nIN1bmSIgQCGhVZfVlA4g4EBI+ODhDuaygDgibCBELqBEJqBAhJUw2f8c3OgY8CAZ8iaRaOHRU5DT0RFUkSHjUxhdmY2MC4xNi4xMDBzc9ZjwItjxYgmTtBb+rOWqWfIoUWjh0VOQ09ERVJEh5RMYXZjNjAuMzEuMTAyIGxpYnZweGfIoUWjiERVUkFUSU9ORIeTMDA6MDA6MDIuMDAwMDAwMDAwAB9DtnXD54EAo6OBAACAEAIAnQEqEAAQAABHCIWFiJmEiAICAAwNYAD+/6tQgKOZgQPoALEBAAEQEAAYADA/9AwAAAD+/6tQgBxTu2uRu4+zgQC3iveBAfGCAZ/wgQM=" type="video/webm">
+  <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAMrbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAB9AAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAlV0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAB9AAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAfQAAAAAAABAAAAAAHNbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAABAAAAAgABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABeG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAThzdGJsAAAAuHN0c2QAAAAAAAAAAQAAAKhhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFUxhdmM2MC4zMS4xMDIgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAALmF2Y0MBQsAe/+EAFmdCwB7ZHsBEAAADAAQAAAMACDxYuSABAAVoy4PLIAAAABBwYXNwAAAAAQAAAAEAAAAUYnRydAAAAAAAAApAAAAKQAAAABhzdHRzAAAAAAAAAAEAAAACAABAAAAAABRzdHNzAAAAAAAAAAEAAAABAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAACAAAAAQAAABxzdHN6AAAAAAAAAAAAAAACAAAChgAAAAoAAAAUc3RjbwAAAAAAAAABAAADWwAAAGJ1ZHRhAAAAWm1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALWlsc3QAAAAlqXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNjAuMTYuMTAwAAAACGZyZWUAAAKYbWRhdAAAAnAGBf//bNxF6b3m2Ui3lizYINkj7u94MjY0IC0gY29yZSAxNjQgcjMxMDggMzFlMTlmOSAtIEguMjY0L01QRUctNCBBVkMgY29kZWMgLSBDb3B5bGVmdCAyMDAzLTIwMjMgLSBodHRwOi8vd3d3LnZpZGVvbGFuLm9yZy94MjY0Lmh0bWwgLSBvcHRpb25zOiBjYWJhYz0wIHJlZj0zIGRlYmxvY2s9MTowOjAgYW5hbHlzZT0weDE6MHgxMTEgbWU9aGV4IHN1Ym1lPTcgcHN5PTEgcHN5X3JkPTEuMDA6MC4wMCBtaXhlZF9yZWY9MSBtZV9yYW5nZT0xNiBjaHJvbWFfbWU9MSB0cmVsbGlzPTEgOHg4ZGN0PTAgY3FtPTAgZGVhZHpvbmU9MjEsMTEgZmFzdF9wc2tpcD0xIGNocm9tYV9xcF9vZmZzZXQ9LTIgdGhyZWFkcz0xIGxvb2thaGVhZF90aHJlYWRzPTEgc2xpY2VkX3RocmVhZHM9MCBucj0wIGRlY2ltYXRlPTEgaW50ZXJsYWNlZD0wIGJsdXJheV9jb21wYXQ9MCBjb25zdHJhaW5lZF9pbnRyYT0wIGJmcmFtZXM9MCB3ZWlnaHRwPTAga2V5aW50PTI1MCBrZXlpbnRfbWluPTEgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD00MCByYz1jcmYgbWJ0cmVlPTEgY3JmPTIzLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAAOZYiEBb///w9FAAFPf4AAAAAGQZo4CvqA" type="video/mp4">
+</video>
+
+<script>
+/* ================= алгоритм ================= */
+function mulberry32(a){return function(){a|=0;a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296;};}
+const NEVER=-1000000;
+
+function bestMatching(active,w,rnd,restarts){
+  const n=active.length;
+  if(n===0)return {pairs:[],score:0};
+  let best=null,bestSc=-Infinity;
+  for(let r=0;r<restarts;r++){
+    const free=[];for(let i=0;i<n;i++)free.push(i);
+    for(let i=free.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));const t=free[i];free[i]=free[j];free[j]=t;}
+    const pairs=[];let sc=0;
+    while(free.length){
+      const a=free.pop();let bi=-1;
+      if(r===0){let bw=-Infinity;for(let k=0;k<free.length;k++){const v=w[active[a]][active[free[k]]];if(v>bw){bw=v;bi=k;}}}
+      else{const idx=free.map((_,k)=>k).sort((x,y)=>w[active[a]][active[free[y]]]-w[active[a]][active[free[x]]]);
+           bi=idx[Math.floor(rnd()*Math.min(idx.length,3))];}
+      const b=free[bi];free.splice(bi,1);
+      pairs.push([a,b]);sc+=w[active[a]][active[b]];
+    }
+    let improved=true;
+    while(improved){improved=false;
+      for(let i=0;i<pairs.length;i++)for(let j=i+1;j<pairs.length;j++){
+        const a=pairs[i][0],b=pairs[i][1],c=pairs[j][0],d=pairs[j][1];
+        const cur=w[active[a]][active[b]]+w[active[c]][active[d]];
+        const o1=w[active[a]][active[c]]+w[active[b]][active[d]];
+        const o2=w[active[a]][active[d]]+w[active[b]][active[c]];
+        if(o1>cur&&o1>=o2){pairs[i]=[a,c];pairs[j]=[b,d];sc+=o1-cur;improved=true;}
+        else if(o2>cur){pairs[i]=[a,d];pairs[j]=[b,c];sc+=o2-cur;improved=true;}
+      }
+    }
+    if(sc>bestSc){bestSc=sc;best=pairs.map(p=>[active[p[0]],active[p[1]]]);}
+  }
+  return {pairs:best,score:bestSc};
+}
+
+function buildOnce(N,P,seed,opt){
+  const rnd=mulberry32(seed*7919+13);
+  const met=[],lastMet=[],w=[];
+  for(let i=0;i<N;i++){met.push(new Int32Array(N));const lm=new Int32Array(N);lm.fill(NEVER);lastMet.push(lm);w.push(new Float64Array(N));}
+  const lastRest=new Int32Array(N).fill(NEVER),restCount=new Int32Array(N),unmet=new Int32Array(N).fill(N-1);
+  const restSlots=N-2*P,totalPairs=N*(N-1)/2;
+  let unmetPairs=totalPairs,t=0;
+  const rounds=[],limit=Math.max(200,4*(Math.ceil(totalPairs/P)+N));
+  const rscore=i=>{let s=0;if(lastRest[i]===t-1)s-=1e9;s-=restCount[i]*1e6;s+=Math.min(t-lastRest[i],900)*1000;s-=unmet[i]*150;return s;};
+  while(unmetPairs>0&&t<limit){
+    for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){
+      const v=-met[i][j]*1e6+Math.min(t-lastMet[i][j],900)*1000;w[i][j]=v;w[j][i]=v;}
+    const sc=new Float64Array(N);for(let i=0;i<N;i++)sc[i]=rscore(i);
+    const order=[];for(let i=0;i<N;i++)order.push(i);
+    const jit=order.map(()=>rnd());
+    order.sort((a,b)=>(sc[b]-sc[a])||(jit[a]-jit[b]));
+    let candSets;
+    if(restSlots===0)candSets=[[]];
+    else{
+      const base=order.slice(0,restSlots);candSets=[base];
+      const pool=order.slice(restSlots,restSlots+opt.pool);
+      for(let k=0;k<Math.min(opt.pert,base.length);k++)
+        for(let q=0;q<Math.min(3,pool.length);q++){
+          const alt=base.slice();alt[base.length-1-k]=pool[q];candSets.push(alt);}
+    }
+    let bestTot=-Infinity,bestPairs=null,bestRest=null;
+    for(const rs of candSets){
+      const inRest=new Uint8Array(N);for(const i of rs)inRest[i]=1;
+      const active=[];for(let i=0;i<N;i++)if(!inRest[i])active.push(i);
+      const m=bestMatching(active,w,rnd,opt.restarts);
+      let rpen=0;for(const i of rs)rpen+=sc[i];
+      const tot=m.score+rpen*0.001;
+      if(tot>bestTot){bestTot=tot;bestPairs=m.pairs;bestRest=rs.slice().sort((a,b)=>a-b);}
+    }
+    for(const p of bestPairs){const i=p[0],j=p[1];met[i][j]++;met[j][i]++;
+      if(met[i][j]===1){unmetPairs--;unmet[i]--;unmet[j]--;}
+      lastMet[i][j]=t;lastMet[j][i]=t;}
+    for(const i of bestRest){lastRest[i]=t;restCount[i]++;}
+    rounds.push({
+      pairs:bestPairs.map(p=>p[0]<p[1]?[p[0]+1,p[1]+1]:[p[1]+1,p[0]+1]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]),
+      rest:bestRest.map(i=>i+1)
+    });
+    t++;
+  }
+  return rounds;
+}
+
+function quality(rounds,N){
+  const lastMet=new Map(),lastRest=new Map();
+  let minGap=Infinity,consec=0,minRestGap=Infinity;
+  const rc=new Int32Array(N+1);
+  rounds.forEach((r,t)=>{
+    for(const p of r.pairs){const k=p[0]*1000+p[1];
+      if(lastMet.has(k))minGap=Math.min(minGap,t-lastMet.get(k));lastMet.set(k,t);}
+    for(const i of r.rest){
+      if(lastRest.has(i)){const g=t-lastRest.get(i);minRestGap=Math.min(minRestGap,g);if(g===1)consec++;}
+      lastRest.set(i,t);rc[i]++;}
+  });
+  let mx=0,mn=1e9;for(let i=1;i<=N;i++){mx=Math.max(mx,rc[i]);mn=Math.min(mn,rc[i]);}
+  return {rounds:rounds.length,consec,spread:mx-mn,minGap,minRestGap};
+}
+
+function buildSchedule(N,P,seeds){
+  const opt={restarts:15,pool:6,pert:3};
+  let best=null,bestKey=null;
+  const cmp=(a,b)=>{for(let i=0;i<a.length;i++)if(a[i]!==b[i])return a[i]-b[i];return 0;};
+  for(let s=0;s<seeds;s++){
+    const r=buildOnce(N,P,s,opt),q=quality(r,N);
+    const key=[q.rounds,q.consec,q.spread,-(isFinite(q.minGap)?q.minGap:1e6),-(isFinite(q.minRestGap)?q.minRestGap:1e6)];
+    if(!bestKey||cmp(key,bestKey)<0){bestKey=key;best={rounds:r,q};}
+  }
+  return best;
+}
+
+/* ================= интерфейс ================= */
+const $=id=>document.getElementById(id);
+let state={N:15,P:7,rounds:[],q:null,cur:0};
+
+function plural(n,one,few,many){
+  const m10=n%10,m100=n%100;
+  if(m10===1&&m100!==11)return one;
+  if(m10>=2&&m10<=4&&(m100<10||m100>=20))return few;
+  return many;
+}
+
+function maxPairs(N){return Math.floor(N/2);}
+
+function refreshHint(){
+  const N=+$('inpN').value||0,P=+$('inpP').value||0;
+  const h=$('hint');
+  if(N<4||N>30){h.textContent='Спортсменов должно быть от 4 до 30.';h.className='hint bad';$('goBtn').disabled=true;return;}
+  if(P<1||P>maxPairs(N)){h.textContent='При '+N+' спортсменах пар может быть от 1 до '+maxPairs(N)+'.';h.className='hint bad';$('goBtn').disabled=true;return;}
+  const rest=N-2*P;
+  h.textContent=rest===0?'Борются все, отдыхающих нет.'
+    :'Одновременно борются '+(2*P)+', отдыхают '+rest+'.';
+  h.className='hint';$('goBtn').disabled=false;
+}
+
+function generate(){
+  const N=+$('inpN').value,P=+$('inpP').value;
+  $('goBtn').disabled=true;$('goBtn').textContent='Считаю…';
+  setTimeout(()=>{
+    const res=buildSchedule(N,P,4);
+    state={N,P,rounds:res.rounds,q:res.q,cur:0};
+    $('goBtn').textContent='Составить расписание';$('goBtn').disabled=false;
+    renderAll();
+    closeSheet();
+  },30);
+}
+
+function renderAll(){
+  const {N,P,rounds,q}=state;
+  $('cfgLabel').textContent=N+' '+plural(N,'борец','борца','борцов')+', '+P+' '+plural(P,'пара','пары','пар');
+  const st=$('stats');st.hidden=false;
+  st.innerHTML='<div style="padding-bottom:4px"><span>Сейчас составлено</span><b></b></div>'+
+    row('Раундов до полного круга',rounds.length)+
+    row('Схваток у каждого борца',N-1)+
+    row('Отдыхают в раунде',N-2*P);
+  renderRound();renderTable();
+}
+function row(k,v){return '<div><span>'+k+'</span><b>'+v+'</b></div>';}
+
+function renderRound(){
+  const r=state.rounds[state.cur];
+  if(!r)return;
+  $('rNum').textContent=state.cur+1;
+  $('rOf').textContent='из '+state.rounds.length;
+  $('pairs').innerHTML=r.pairs.map(p=>'<li><span>'+p[0]+'</span><span>'+p[1]+'</span></li>').join('');
+  const rb=$('restBlock');
+  if(r.rest.length===0){rb.hidden=true;}
+  else{
+    rb.hidden=false;
+    $('restLabel').textContent=r.rest.length===1?'Отдыхает':'Отдыхают';
+    $('restList').innerHTML=r.rest.map(n=>'<li>'+n+'</li>').join('');
+  }
+  $('doneMsg').hidden=state.cur!==state.rounds.length-1;
+  $('prevBtn').disabled=state.cur===0;
+  $('nextBtn').disabled=state.cur>=state.rounds.length-1;
+  const v=$('view-round');v.classList.remove('fade');void v.offsetWidth;v.classList.add('fade');
+}
+
+function renderTable(){
+  const {N,P,rounds,q}=state;
+  let h='<thead><tr><th>Раунд</th>';
+  for(let k=1;k<=P;k++)h+='<th>Пара '+k+'</th>';
+  if(N-2*P>0)h+='<th>Отдых</th>';
+  h+='</tr></thead><tbody>';
+  rounds.forEach((r,i)=>{
+    h+='<tr><td class="rn">'+(i+1)+'</td>';
+    for(const p of r.pairs)h+='<td>'+p[0]+' — '+p[1]+'</td>';
+    if(N-2*P>0)h+='<td class="rs">'+r.rest.join(', ')+'</td>';
+    h+='</tr>';
+  });
+  $('grid').innerHTML=h+'</tbody>';
+  $('printHead').innerHTML='<h2>Круговая борьба — '+N+' '+plural(N,'борец','борца','борцов')+', '+P+' '+plural(P,'пара','пары','пар')+'</h2>'+
+    '<p>'+rounds.length+' '+plural(rounds.length,'раунд','раунда','раундов')+' до полного круга. Номера по расчёту в шеренге.</p>';
+  const notes=[];
+  if(isFinite(q.minGap))notes.push('Пара повторяется не раньше, чем через '+q.minGap+' '+plural(q.minGap,'раунд','раунда','раундов')+'.');
+  else notes.push('Повторов нет: каждая пара встречается ровно один раз.');
+  if(N-2*P>0){
+    if(q.consec===0)notes.push('Никто не отдыхает два раунда подряд.');
+    else notes.push('Пар меньше четверти группы, поэтому отдых подряд неизбежен — он сведён к минимуму.');
+  }
+  $('tableNote').textContent=notes.join(' ');
+}
+
+/* вкладки */
+function setTab(t){
+  const r=t==='round';
+  $('tabRound').setAttribute('aria-selected',r);
+  $('tabTable').setAttribute('aria-selected',!r);
+  $('view-round').hidden=!r;$('view-table').hidden=r;
+  $('nav').hidden=!r;
+}
+$('tabRound').onclick=()=>setTab('round');
+$('tabTable').onclick=()=>setTab('table');
+
+/* навигация */
+function go(d){
+  const n=state.cur+d;
+  if(n<0||n>=state.rounds.length)return;
+  state.cur=n;renderRound();window.scrollTo(0,0);
+}
+$('prevBtn').onclick=()=>go(-1);
+$('nextBtn').onclick=()=>go(1);
+document.addEventListener('keydown',e=>{
+  if($('sheet').classList.contains('open'))return;
+  if(e.key==='ArrowRight')go(1);
+  if(e.key==='ArrowLeft')go(-1);
+});
+let tx=0,ty=0;
+const vr=$('view-round');
+vr.addEventListener('touchstart',e=>{tx=e.changedTouches[0].clientX;ty=e.changedTouches[0].clientY;},{passive:true});
+vr.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
+  if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.8)go(dx<0?1:-1);
+},{passive:true});
+
+/* настройки */
+function openSheet(){$('sheet').classList.add('open');refreshHint();}
+function closeSheet(){$('sheet').classList.remove('open');}
+$('cfgBtn').onclick=openSheet;
+$('closeBtn').onclick=closeSheet;
+$('sheet').addEventListener('click',e=>{if(e.target===$('sheet'))closeSheet();});
+$('goBtn').onclick=generate;
+$('printBtn').onclick=()=>window.print();
+
+document.querySelectorAll('[data-step]').forEach(b=>{
+  b.onclick=()=>{
+    const s=b.dataset.step,f=s[0]==='n'?$('inpN'):$('inpP'),d=s.slice(1)==='+1'?1:-1;
+    let v=(+f.value||0)+d;
+    const lo=+f.min,hi=f===$('inpN')?30:maxPairs(+$('inpN').value||4);
+    v=Math.max(lo,Math.min(hi,v));
+    f.value=v;
+    if(f===$('inpN')){const p=$('inpP');if(+p.value>maxPairs(v))p.value=maxPairs(v);}
+    refreshHint();
+  };
+});
+$('inpN').oninput=$('inpP').oninput=refreshHint;
+
+/* экран не гаснет */
+let wl=null,vidOn=false,wlErr='';
+const wakeWanted=()=>$('wakeChk').checked;
+const isOn=()=>!!wl||vidOn;
+
+async function keepOn(){
+  wlErr='';
+  if(!window.isSecureContext)wlErr='страница открыта не по https (файл из загрузок или мессенджера)';
+  else if(!('wakeLock'in navigator))wlErr='браузер не поддерживает блокировку экрана (встроенный просмотрщик, WebView)';
+  else{
+    try{
+      if(!wl){
+        wl=await navigator.wakeLock.request('screen');
+        wl.addEventListener('release',()=>{wl=null;updateBadge();});
+      }
+      if(vidOn){$('keepVid').pause();vidOn=false;}
+      return 'api';
+    }catch(err){wl=null;wlErr='браузер отказал ('+(err&&err.name||'ошибка')+')';}
+  }
+  try{
+    const v=$('keepVid');
+    if(!vidOn){v.currentTime=0;await v.play();}
+    vidOn=!v.paused;
+    if(vidOn)return 'video';
+  }catch(err){vidOn=false;}
+  return null;
+}
+function keepOff(){
+  if(wl){wl.release().catch(()=>{});wl=null;}
+  if(vidOn){$('keepVid').pause();vidOn=false;}
+}
+function updateBadge(){
+  const b=$('wakeBadge');
+  if(!wakeWanted()){b.hidden=true;return;}
+  b.hidden=false;
+  if(wl){b.textContent='Экран ✓';b.className='wk';}
+  else if(vidOn){b.textContent='Экран ?';b.className='wk lost';}
+  else{b.textContent='Экран ✕';b.className='wk lost';}
+}
+function showWakeMsg(r){
+  const m=$('wakeMsg');
+  if(r==='api'){m.className='hint';m.textContent='Экран не погаснет, пока страница открыта.';}
+  else if(r==='video'){m.className='hint bad';
+    m.textContent='Включён запасной способ: '+wlErr+'. На многих Android он не держит экран. Надёжнее открыть страницу в Chrome по https-ссылке.';}
+  else{m.className='hint bad';
+    m.textContent='Не получилось: '+(wlErr||'телефон не разрешил')+'. Поставьте автоблокировку экрана на 10 минут в настройках телефона.';}
+}
+$('keepVid').addEventListener('pause',()=>{if(vidOn){vidOn=false;updateBadge();}});
+$('wakeChk').onchange=async e=>{
+  if(!e.target.checked){keepOff();const m=$('wakeMsg');m.textContent='';m.className='hint';updateBadge();return;}
+  const r=await keepOn();
+  if(!r)e.target.checked=false;
+  showWakeMsg(r);updateBadge();
+};
+/* блокировку снимает система при каждом гашении/сворачивании — возвращаем */
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState!=='visible'||!wakeWanted())return;
+  await keepOn();updateBadge();
+});
+/* страховка: любое касание восстанавливает блокировку, если она слетела */
+document.addEventListener('pointerdown',()=>{
+  if(wakeWanted()&&!isOn())keepOn().then(updateBadge);
+},{passive:true});
+
+/* установка как приложение и работа без интернета */
+if('serviceWorker'in navigator&&location.protocol==='https:'){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+/* старт */
+const first=buildSchedule(15,7,4);
+state={N:15,P:7,rounds:first.rounds,q:first.q,cur:0};
+renderAll();
+</script>
+</body>
+</html>
