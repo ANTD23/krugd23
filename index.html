@@ -121,7 +121,7 @@ th,td{border:1px solid var(--line);padding:6px 5px;text-align:center;font-size:1
 thead th{background:var(--soft);font-weight:600;font-size:13px;position:sticky;top:0}
 tbody tr:nth-child(even) td{background:#F6F8FA}
 td.rn{font-weight:700}
-td.rs{color:var(--mat);white-space:normal;min-width:84px;font-size:13px}
+td.rs{color:var(--mat);white-space:normal;min-width:150px;font-size:13px;text-align:left}
 .tools{display:flex;gap:10px;padding:16px 0 0}
 .tools button{
   flex:1;min-height:48px;border-radius:9px;font-size:16px;font-weight:600;
@@ -329,6 +329,7 @@ function bestMatching(active,w,rnd,restarts){
 }
 
 function buildOnce(N,P,seed,opt){
+  const must=!!opt.must;   /* вариант «обязан бороться»: кому не хватит оставшихся раундов, тот не отдыхает */
   const rnd=mulberry32(seed*7919+13);
   const met=[],lastMet=[],w=[];
   for(let i=0;i<N;i++){met.push(new Int32Array(N));const lm=new Int32Array(N);lm.fill(NEVER);lastMet.push(lm);w.push(new Float64Array(N));}
@@ -336,7 +337,8 @@ function buildOnce(N,P,seed,opt){
   const restSlots=N-2*P,totalPairs=N*(N-1)/2;
   let unmetPairs=totalPairs,t=0;
   const rounds=[],limit=Math.max(200,4*(Math.ceil(totalPairs/P)+N));
-  const rscore=i=>{let s=0;if(lastRest[i]===t-1)s-=1e9;s-=restCount[i]*1e6;s+=Math.min(t-lastRest[i],900)*1000;s-=unmet[i]*150;return s;};
+  const LBr=Math.max(N%2?N:N-1,Math.ceil(totalPairs/P));
+  const rscore=i=>{let s=0;if(must&&unmet[i]>0&&unmet[i]>=LBr-t)s-=1e13;if(lastRest[i]===t-1)s-=1e9;s-=restCount[i]*1e6;s+=Math.min(t-lastRest[i],900)*1000;s-=unmet[i]*150;return s;};
   while(unmetPairs>0&&t<limit){
     for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){
       const v=-met[i][j]*1e6+Math.min(t-lastMet[i][j],900)*1000;w[i][j]=v;w[j][i]=v;}
@@ -387,16 +389,19 @@ function quality(rounds,N){
       lastRest.set(i,t);rc[i]++;}
   });
   let mx=0,mn=1e9;for(let i=1;i<=N;i++){mx=Math.max(mx,rc[i]);mn=Math.min(mn,rc[i]);}
-  return {rounds:rounds.length,consec,spread:mx-mn,minGap,minRestGap};
+  const fc=new Int32Array(N+1);let bouts=0;rounds.forEach(r=>{for(const p of r.pairs){fc[p[0]]++;fc[p[1]]++;bouts++;}});
+  let fmin=1e9,fmax=0;for(let i=1;i<=N;i++){fmin=Math.min(fmin,fc[i]);fmax=Math.max(fmax,fc[i]);}
+  return {rounds:rounds.length,consec,spread:mx-mn,minGap,minRestGap,fmin,fmax,repeats:bouts-N*(N-1)/2};
 }
 
 function buildSchedule(N,P,seeds){
   const opt={restarts:15,pool:6,pert:3};
   let best=null,bestKey=null;
   const cmp=(a,b)=>{for(let i=0;i<a.length;i++)if(a[i]!==b[i])return a[i]-b[i];return 0;};
-  for(let s=0;s<seeds;s++){
-    const r=buildOnce(N,P,s,opt),q=quality(r,N);
-    const key=[q.rounds,q.consec,q.spread,-(isFinite(q.minGap)?q.minGap:1e6),-(isFinite(q.minRestGap)?q.minRestGap:1e6)];
+  /* приоритет: реже отдых подряд, затем меньше раундов */
+  for(const must of (N-2*P>0?[false,true]:[false]))for(let s=0;s<seeds;s++){
+    const r=buildOnce(N,P,s,{...opt,must}),q=quality(r,N);
+    const key=[q.consec,q.rounds,q.spread,-(isFinite(q.minGap)?q.minGap:1e6),-(isFinite(q.minRestGap)?q.minRestGap:1e6)];
     if(!bestKey||cmp(key,bestKey)<0){bestKey=key;best={rounds:r,q};}
   }
   return best;
@@ -414,10 +419,17 @@ function plural(n,one,few,many){
 }
 
 function maxPairs(N){return Math.floor(N/2);}
+function validNP(N,P){return Number.isInteger(N)&&Number.isInteger(P)&&N>=4&&N<=30&&P>=1&&P<=maxPairs(N);}
+
+/* запоминаем состав, раунд и «не гасить экран»: после перезагрузки страницы всё на месте */
+const KEY='krug.state';
+function save(){try{localStorage.setItem(KEY,JSON.stringify({N:state.N,P:state.P,cur:state.cur,wake:$('wakeChk').checked}));}catch(e){}}
+function load(){try{const o=JSON.parse(localStorage.getItem(KEY)||'null');if(o&&validNP(o.N,o.P))return o;}catch(e){}return null;}
 
 function refreshHint(){
   const N=+$('inpN').value||0,P=+$('inpP').value||0;
   const h=$('hint');
+  if(!Number.isInteger(N)||!Number.isInteger(P)){h.textContent='Введите целые числа.';h.className='hint bad';$('goBtn').disabled=true;return;}
   if(N<4||N>30){h.textContent='Спортсменов должно быть от 4 до 30.';h.className='hint bad';$('goBtn').disabled=true;return;}
   if(P<1||P>maxPairs(N)){h.textContent='При '+N+' спортсменах пар может быть от 1 до '+maxPairs(N)+'.';h.className='hint bad';$('goBtn').disabled=true;return;}
   const rest=N-2*P;
@@ -428,13 +440,18 @@ function refreshHint(){
 
 function generate(){
   const N=+$('inpN').value,P=+$('inpP').value;
+  if(!validNP(N,P)){refreshHint();return;}
   $('goBtn').disabled=true;$('goBtn').textContent='Считаю…';
   setTimeout(()=>{
-    const res=buildSchedule(N,P,4);
-    state={N,P,rounds:res.rounds,q:res.q,cur:0};
-    $('goBtn').textContent='Составить расписание';$('goBtn').disabled=false;
-    renderAll();
-    closeSheet();
+    try{
+      const res=buildSchedule(N,P,4);
+      state={N,P,rounds:res.rounds,q:res.q,cur:0};
+      save();renderAll();closeSheet();
+    }catch(err){
+      const h=$('hint');h.textContent='Не получилось составить расписание: '+(err&&err.message||err)+'. Проверьте числа.';h.className='hint bad';
+    }finally{
+      $('goBtn').textContent='Составить расписание';$('goBtn').disabled=false;
+    }
   },30);
 }
 
@@ -442,9 +459,9 @@ function renderAll(){
   const {N,P,rounds,q}=state;
   $('cfgLabel').textContent=N+' '+plural(N,'борец','борца','борцов')+', '+P+' '+plural(P,'пара','пары','пар');
   const st=$('stats');st.hidden=false;
-  st.innerHTML='<div style="padding-bottom:4px"><span>Сейчас составлено</span><b></b></div>'+
-    row('Раундов до полного круга',rounds.length)+
-    row('Схваток у каждого борца',N-1)+
+  st.innerHTML=row('Раундов до полного круга',rounds.length)+
+    row('Схваток у каждого борца',q.fmin===q.fmax?q.fmin:q.fmin+'–'+q.fmax)+
+    (q.repeats>0?row('Повторных схваток (добивка последних раундов)',q.repeats):'')+
     row('Отдыхают в раунде',N-2*P);
   renderRound();renderTable();
 }
@@ -464,6 +481,7 @@ function renderRound(){
     $('restList').innerHTML=r.rest.map(n=>'<li>'+n+'</li>').join('');
   }
   $('doneMsg').hidden=state.cur!==state.rounds.length-1;
+  save();
   $('prevBtn').disabled=state.cur===0;
   $('nextBtn').disabled=state.cur>=state.rounds.length-1;
   const v=$('view-round');v.classList.remove('fade');void v.offsetWidth;v.classList.add('fade');
@@ -485,11 +503,12 @@ function renderTable(){
   $('printHead').innerHTML='<h2>Круговая борьба — '+N+' '+plural(N,'борец','борца','борцов')+', '+P+' '+plural(P,'пара','пары','пар')+'</h2>'+
     '<p>'+rounds.length+' '+plural(rounds.length,'раунд','раунда','раундов')+' до полного круга. Номера по расчёту в шеренге.</p>';
   const notes=[];
-  if(isFinite(q.minGap))notes.push('Пара повторяется не раньше, чем через '+q.minGap+' '+plural(q.minGap,'раунд','раунда','раундов')+'.');
+  if(isFinite(q.minGap))notes.push('Чтобы заполнить последние раунды, часть пар борется повторно ('+q.repeats+' '+plural(q.repeats,'схватка','схватки','схваток')+'); пара повторяется не раньше, чем через '+q.minGap+' '+plural(q.minGap,'раунд','раунда','раундов')+'.');
   else notes.push('Повторов нет: каждая пара встречается ровно один раз.');
   if(N-2*P>0){
     if(q.consec===0)notes.push('Никто не отдыхает два раунда подряд.');
-    else notes.push('Пар меньше четверти группы, поэтому отдых подряд неизбежен — он сведён к минимуму.');
+    else if(4*P<=N)notes.push('Пар не больше четверти группы, поэтому отдых два раунда подряд неизбежен; таких случаев '+q.consec+' — это минимум, который удалось получить.');
+    else notes.push('Отдых два раунда подряд: '+q.consec+' '+plural(q.consec,'случай','случая','случаев')+' — меньше составить не удалось.');
   }
   $('tableNote').textContent=notes.join(' ');
 }
@@ -514,7 +533,7 @@ function go(d){
 $('prevBtn').onclick=()=>go(-1);
 $('nextBtn').onclick=()=>go(1);
 document.addEventListener('keydown',e=>{
-  if($('sheet').classList.contains('open'))return;
+  if($('sheet').classList.contains('open')||$('view-round').hidden)return;
   if(e.key==='ArrowRight')go(1);
   if(e.key==='ArrowLeft')go(-1);
 });
@@ -597,10 +616,10 @@ function showWakeMsg(r){
 }
 $('keepVid').addEventListener('pause',()=>{if(vidOn){vidOn=false;updateBadge();}});
 $('wakeChk').onchange=async e=>{
-  if(!e.target.checked){keepOff();const m=$('wakeMsg');m.textContent='';m.className='hint';updateBadge();return;}
+  if(!e.target.checked){keepOff();const m=$('wakeMsg');m.textContent='';m.className='hint';updateBadge();save();return;}
   const r=await keepOn();
   if(!r)e.target.checked=false;
-  showWakeMsg(r);updateBadge();
+  showWakeMsg(r);updateBadge();save();
 };
 /* блокировку снимает система при каждом гашении/сворачивании — возвращаем */
 document.addEventListener('visibilitychange',async()=>{
@@ -618,9 +637,13 @@ if('serviceWorker'in navigator&&location.protocol==='https:'){
 }
 
 /* старт */
-const first=buildSchedule(15,7,4);
-state={N:15,P:7,rounds:first.rounds,q:first.q,cur:0};
+const saved=load(),N0=saved?saved.N:15,P0=saved?saved.P:7;
+const first=buildSchedule(N0,P0,4);
+state={N:N0,P:P0,rounds:first.rounds,q:first.q,cur:saved?Math.min(Math.max(0,saved.cur|0),first.rounds.length-1):0};
+$('inpN').value=N0;$('inpP').value=P0;
+if(saved&&saved.wake)$('wakeChk').checked=true;
 renderAll();
+if(saved&&saved.wake)keepOn().then(updateBadge);   /* если не вышло — сработает при первом касании */
 </script>
 </body>
 </html>

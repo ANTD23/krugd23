@@ -1,10 +1,10 @@
 /* Круговая борьба: работа без интернета.
-   Сначала сеть (обновления приходят сразу), без сети — сохранённая копия.
+   Сначала сеть (обновления приходят сразу), без сети или если сеть молчит дольше 3 с — сохранённая копия.
    Установка не срывается, если какой-то файл не найден: файлы кэшируются по одному.
    Удаляются только свои старые кэши (приставка krug-): на github.io хранилище
    общее для всех приложений аккаунта, чужие кэши (например, «Срока абонемента») не трогаем. */
 const PFX = 'krug-';
-const CACHE = PFX + 'v3';
+const CACHE = PFX + 'v4';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png',
   './icon-maskable-192.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
@@ -19,7 +19,10 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  e.respondWith(fetch(e.request).then(r => {
+  /* в зале со слабым интернетом не ждём сеть бесконечно: страница — 3 с, остальное — 6 с, потом сохранённая копия */
+  const wait = e.request.mode === 'navigate' ? 3000 : 6000;
+  const net = Promise.race([fetch(e.request), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), wait))]);
+  e.respondWith(net.then(r => {
     if (r.ok && new URL(e.request.url).origin === location.origin) {
       const cp = r.clone(); caches.open(CACHE).then(c => c.put(e.request, cp));
     }
