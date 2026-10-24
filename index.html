@@ -97,6 +97,47 @@ header,.tabs,.nav{flex:0 0 auto}
   border:1.5px dashed var(--mat);border-radius:7px;
   color:var(--mat);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;
 }
+/* ---------- timer ---------- */
+.timer{
+  margin:12px 0 0;border-radius:12px;padding:10px 14px 12px;
+  background:var(--soft);color:var(--blue-deep);border:1.5px solid var(--line);
+  transition:background-color .2s,color .2s;
+}
+.ttop{display:flex;align-items:center;gap:10px;min-height:28px}
+.tlabel{flex:1;font-size:15px;font-weight:600;letter-spacing:.01em}
+.tcfg{font-size:13px;padding:5px 9px;border-radius:7px;background:rgba(20,50,75,.08);color:inherit;white-space:nowrap}
+.tclock{
+  font-size:76px;font-weight:800;line-height:1;text-align:center;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em;padding:4px 0 8px;
+}
+@media(max-width:360px){.tclock{font-size:68px}}
+.tbar{height:6px;border-radius:3px;background:rgba(20,50,75,.14);overflow:hidden}
+.tbar i{display:block;height:100%;width:100%;background:currentColor;transform-origin:left center}
+.tbtns{display:flex;gap:10px;margin-top:10px}
+.tbtns button{flex:1;min-height:54px;border-radius:9px;font-size:18px;font-weight:700;background:var(--blue);color:#fff}
+.tbtns button.ghost{flex:0 0 34%;background:rgba(20,50,75,.1);color:inherit;font-weight:600;font-size:16px}
+.tbtns button:disabled{opacity:.35}
+.timer[data-phase="bout"],.timer[data-phase="warn"]{color:#fff;border-color:transparent}
+.timer[data-phase="bout"]{background:var(--blue)}
+.timer[data-phase="warn"]{background:var(--mat)}
+.timer[data-phase="bout"] .tcfg,.timer[data-phase="warn"] .tcfg,
+.timer[data-phase="bout"] .tbar,.timer[data-phase="warn"] .tbar{background:rgba(255,255,255,.22)}
+.timer[data-phase="bout"] .tbtns button:not(.ghost),.timer[data-phase="warn"] .tbtns button:not(.ghost){background:#fff;color:var(--blue-deep)}
+.timer[data-phase="bout"] .tbtns button.ghost,.timer[data-phase="warn"] .tbtns button.ghost{background:rgba(255,255,255,.2)}
+.timer[data-phase="change"]{background:#FBEFEC;border:1.5px dashed var(--mat);color:var(--mat)}
+.timer[data-phase="paused"]{background:var(--paper);border-color:var(--blue)}
+.timer[data-phase="paused"] .tclock{opacity:.55}
+.timer[data-phase="done"]{background:var(--paper);border-color:var(--blue)}
+
+.sec{margin:18px 0 2px;font-size:16px;font-weight:700}
+.step output{
+  display:block;min-width:72px;height:46px;line-height:46px;text-align:center;
+  font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;background:var(--paper);
+}
+.chk{display:flex;align-items:center;gap:10px;padding:10px 0}
+.chk input{width:22px;height:22px;flex:0 0 auto}
+.chk label{font-size:15px}
+
 .done{margin:22px 0 0;padding:14px;border:1.5px solid var(--blue);border-radius:8px;
   background:var(--soft);font-size:15px}
 
@@ -224,6 +265,18 @@ td.rs{color:var(--mat);white-space:normal;min-width:150px;font-size:13px;text-al
       <span class="n" id="rNum">1</span>
       <span class="of" id="rOf">из 15</span>
     </div>
+    <div class="timer" id="timer" data-phase="idle">
+      <div class="ttop">
+        <span class="tlabel" id="tLabel">Схватка</span>
+        <button class="tcfg" id="tCfg" aria-label="Настроить таймер">3:00 · смена 30 с</button>
+      </div>
+      <div class="tclock" id="tClock" aria-live="off">3:00</div>
+      <div class="tbar"><i id="tBar"></i></div>
+      <div class="tbtns">
+        <button class="ghost" id="tReset">Сброс</button>
+        <button id="tStart">Старт</button>
+      </div>
+    </div>
     <ul class="pairs" id="pairs"></ul>
     <div class="rest" id="restBlock">
       <p id="restLabel">Отдыхает</p>
@@ -274,6 +327,34 @@ td.rs{color:var(--mat);white-space:normal;min-width:150px;font-size:13px;text-al
     <p class="hint" id="hint"></p>
 
     <div class="stats" id="stats" hidden></div>
+
+    <h3 class="sec">Таймер</h3>
+    <div class="field">
+      <label>Схватка</label>
+      <div class="step">
+        <button type="button" data-t="bout-1" aria-label="Меньше">−</button>
+        <output id="outBout">3:00</output>
+        <button type="button" data-t="bout+1" aria-label="Больше">+</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Смена пар</label>
+      <div class="step">
+        <button type="button" data-t="change-1" aria-label="Меньше">−</button>
+        <output id="outChange">30 с</output>
+        <button type="button" data-t="change+1" aria-label="Больше">+</button>
+      </div>
+    </div>
+    <div class="chk">
+      <input type="checkbox" id="autoChk" autocomplete="off">
+      <label for="autoChk">После смены пар следующая схватка начинается сама</label>
+    </div>
+    <div class="chk">
+      <input type="checkbox" id="soundChk" autocomplete="off">
+      <label for="soundChk">Звуковые сигналы и вибрация</label>
+    </div>
+    <p class="hint">Таймер настраивается сразу, расписание пересчитывать не нужно.</p>
+
     <div class="wake" id="wakeRow">
       <input type="checkbox" id="wakeChk" autocomplete="off">
       <label for="wakeChk">Не гасить экран во время тренировки</label>
@@ -446,7 +527,7 @@ function generate(){
     try{
       const res=buildSchedule(N,P,4);
       state={N,P,rounds:res.rounds,q:res.q,cur:0};
-      save();renderAll();closeSheet();
+      tReset();save();renderAll();closeSheet();
     }catch(err){
       const h=$('hint');h.textContent='Не получилось составить расписание: '+(err&&err.message||err)+'. Проверьте числа.';h.className='hint bad';
     }finally{
@@ -456,14 +537,24 @@ function generate(){
 }
 
 function renderAll(){
-  const {N,P,rounds,q}=state;
+  const {N,P}=state;
   $('cfgLabel').textContent=N+' '+plural(N,'борец','борца','борцов')+', '+P+' '+plural(P,'пара','пары','пар');
+  renderStats();renderRound();renderTable();
+}
+function renderStats(){
+  const {N,P,rounds,q}=state;
   const st=$('stats');st.hidden=false;
+  const total=rounds.length*TS.bout+Math.max(0,rounds.length-1)*TS.change;
   st.innerHTML=row('Раундов до полного круга',rounds.length)+
     row('Схваток у каждого борца',q.fmin===q.fmax?q.fmin:q.fmin+'–'+q.fmax)+
     (q.repeats>0?row('Повторных схваток (добивка последних раундов)',q.repeats):'')+
-    row('Отдыхают в раунде',N-2*P);
-  renderRound();renderTable();
+    row('Отдыхают в раунде',N-2*P)+
+    row('Весь круг по таймеру',fmtLong(total));
+}
+function fmtLong(s){
+  const h=Math.floor(s/3600),m=Math.round((s%3600)/60);
+  if(h)return h+' ч '+(m?m+' мин':'');
+  return '≈ '+Math.max(1,Math.round(s/60))+' мин';
 }
 function row(k,v){return '<div><span>'+k+'</span><b>'+v+'</b></div>';}
 
@@ -528,12 +619,13 @@ $('tabTable').onclick=()=>setTab('table');
 function go(d){
   const n=state.cur+d;
   if(n<0||n>=state.rounds.length)return;
-  state.cur=n;renderRound();window.scrollTo(0,0);
+  state.cur=n;tReset();renderRound();window.scrollTo(0,0);
 }
 $('prevBtn').onclick=()=>go(-1);
 $('nextBtn').onclick=()=>go(1);
 document.addEventListener('keydown',e=>{
   if($('sheet').classList.contains('open')||$('view-round').hidden)return;
+  if(e.key===' '&&!/^(BUTTON|INPUT)$/.test(e.target.tagName)){e.preventDefault();tPrimary();}
   if(e.key==='ArrowRight')go(1);
   if(e.key==='ArrowLeft')go(-1);
 });
@@ -570,6 +662,9 @@ $('inpN').oninput=$('inpP').oninput=refreshHint;
 /* экран не гаснет */
 let wl=null,vidOn=false,wlErr='';
 const wakeWanted=()=>$('wakeChk').checked;
+/* пока идёт таймер, экран держим в любом случае: иначе цифры погаснут посреди схватки */
+const timerActive=()=>T.phase==='bout'||T.phase==='change';
+const needWake=()=>wakeWanted()||timerActive();
 const isOn=()=>!!wl||vidOn;
 
 async function keepOn(){
@@ -623,13 +718,158 @@ $('wakeChk').onchange=async e=>{
 };
 /* блокировку снимает система при каждом гашении/сворачивании — возвращаем */
 document.addEventListener('visibilitychange',async()=>{
-  if(document.visibilityState!=='visible'||!wakeWanted())return;
+  if(document.visibilityState!=='visible')return;
+  tTick();
+  if(!needWake())return;
   await keepOn();updateBadge();
 });
 /* страховка: любое касание восстанавливает блокировку, если она слетела */
 document.addEventListener('pointerdown',()=>{
-  if(wakeWanted()&&!isOn())keepOn().then(updateBadge);
+  if(TS.sound)audio();
+  if(needWake()&&!isOn())keepOn().then(updateBadge);
 },{passive:true});
+
+/* ================= таймер ================= */
+const TKEY='krug.timer',TSKEY='krug.timerSet';
+const TS={bout:180,change:30,auto:true,sound:true};
+let T={phase:'idle',running:false,endAt:0,left:180000,warned:false,lastTick:0};
+const BOUT_MIN=30,BOUT_MAX=900,CH_MAX=180;
+const boutStep=v=>v<120?15:30;   /* до 2 минут — шаг 15 с, дальше 30 с */
+
+function loadTS(){try{const o=JSON.parse(localStorage.getItem(TSKEY)||'null');if(o){
+  if(Number.isInteger(o.bout)&&o.bout>=BOUT_MIN&&o.bout<=BOUT_MAX)TS.bout=o.bout;
+  if(Number.isInteger(o.change)&&o.change>=0&&o.change<=CH_MAX)TS.change=o.change;
+  if(typeof o.auto==='boolean')TS.auto=o.auto;
+  if(typeof o.sound==='boolean')TS.sound=o.sound;}}catch(e){}}
+function saveTS(){try{localStorage.setItem(TSKEY,JSON.stringify(TS));}catch(e){}}
+function saveT(){try{localStorage.setItem(TKEY,JSON.stringify(T));}catch(e){}}
+
+const fmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+const fmtCh=s=>s===0?'без паузы':s+' с';
+
+/* звук: генерируется в браузере, работает без интернета */
+let ac=null;
+function audio(){
+  if(!ac){const C=window.AudioContext||window.webkitAudioContext;if(C)try{ac=new C();}catch(e){}}
+  if(ac&&ac.state==='suspended')ac.resume().catch(()=>{});
+  return ac;
+}
+function tone(f,dur,when,type,vol){
+  const a=audio();if(!a)return;
+  const t=a.currentTime+(when||0),o=a.createOscillator(),g=a.createGain();
+  o.type=type||'square';o.frequency.value=f;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol||.5,t+.01);
+  g.gain.setValueAtTime(vol||.5,t+dur-.04);g.gain.linearRampToValueAtTime(0,t+dur);
+  o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+dur+.05);
+}
+const vib=p=>{try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}};
+const SND={
+  start(){if(!TS.sound)return;tone(880,.16,0);tone(880,.16,.24);tone(1320,.5,.48);vib([120,100,120,100,350]);},
+  warn(){if(!TS.sound)return;tone(1050,.12,0);tone(1050,.12,.22);tone(1050,.12,.44);vib([100,80,100,80,100]);},
+  tick(){if(!TS.sound)return;tone(760,.12,0,'square',.45);vib(70);},
+  end(){if(!TS.sound)return;tone(330,1.6,0,'sawtooth',.5);tone(336,1.6,0,'square',.3);vib([700,150,700]);}
+};
+
+function beginBout(from,silent){
+  T.phase='bout';T.running=true;T.endAt=from+TS.bout*1000;T.warned=TS.bout<=10;T.lastTick=0;
+  if(!silent)SND.start();
+  saveT();
+}
+function boutOver(at,silent){
+  if(!silent)SND.end();
+  if(state.cur>=state.rounds.length-1){T.phase='done';T.running=false;T.left=0;saveT();return;}
+  state.cur++;renderRound();if(!silent)window.scrollTo(0,0);
+  if(TS.change>0){T.phase='change';T.running=true;T.endAt=at+TS.change*1000;T.lastTick=0;saveT();}
+  else if(TS.auto)beginBout(at,silent);
+  else toIdle();
+}
+function changeOver(at,silent){
+  if(TS.auto)beginBout(at,silent);else toIdle();
+}
+function toIdle(){T.phase='idle';T.running=false;T.left=TS.bout*1000;T.warned=false;saveT();}
+
+/* шаг таймера; silent — догоняем пропущенное (страницу перезагрузили), без звуков */
+function tTick(silent){
+  let guard=0;
+  while(T.running&&guard++<500){
+    const now=Date.now(),rem=T.endAt-now;
+    if(T.phase==='bout'){
+      if(!T.warned&&rem<=10000&&rem>0){T.warned=true;if(!silent)SND.warn();}
+      if(rem<=0){boutOver(T.endAt,silent);continue;}
+    }else if(T.phase==='change'){
+      const s=Math.ceil(rem/1000);
+      if(TS.auto&&s<=3&&s>=1&&s!==T.lastTick){T.lastTick=s;if(!silent)SND.tick();}
+      if(rem<=0){changeOver(T.endAt,silent);continue;}
+    }
+    break;
+  }
+  if(!timerActive()&&!wakeWanted()&&isOn()){keepOff();updateBadge();}
+  tRender();
+}
+
+function tPrimary(){
+  audio();
+  const now=Date.now();
+  if(T.phase==='idle'||T.phase==='change'){beginBout(now);}
+  else if(T.phase==='bout'){
+    if(T.running){T.left=Math.max(0,T.endAt-now);T.running=false;}
+    else{T.endAt=now+T.left;T.running=true;}
+    saveT();
+  }else if(T.phase==='done')return;
+  if(timerActive()&&!isOn())keepOn().then(updateBadge);
+  tTick();
+}
+function tReset(){toIdle();if(!wakeWanted())keepOff();updateBadge();tRender();}
+
+function tRender(){
+  const el=$('timer');if(!el)return;
+  const now=Date.now();
+  let rem,total;
+  if(T.phase==='bout'){rem=T.running?T.endAt-now:T.left;total=TS.bout*1000;}
+  else if(T.phase==='change'){rem=T.endAt-now;total=TS.change*1000;}
+  else if(T.phase==='done'){rem=0;total=1;}
+  else{rem=TS.bout*1000;total=rem;}
+  rem=Math.max(0,rem);
+  const s=Math.ceil(rem/1000);
+  let phase=T.phase,label,btn='Старт';
+  if(T.phase==='idle')label='Схватка — раунд '+(state.cur+1);
+  else if(T.phase==='bout'){
+    if(!T.running){phase='paused';label='Пауза';btn='Продолжить';}
+    else{label='Схватка — раунд '+(state.cur+1);btn='Пауза';if(rem<=10000)phase='warn';}
+  }else if(T.phase==='change'){label='Смена пар → раунд '+(state.cur+1);btn='Начать сейчас';}
+  else{label='Круг пройден';btn='Готово';}
+  el.dataset.phase=phase;
+  $('tLabel').textContent=label;
+  $('tClock').textContent=T.phase==='done'?'0:00':fmt(s);
+  $('tBar').style.transform='scaleX('+(total?rem/total:0)+')';
+  $('tStart').textContent=btn;
+  $('tStart').disabled=T.phase==='done';
+  $('tReset').disabled=T.phase==='idle';
+  $('tCfg').textContent=fmt(TS.bout)+' · смена '+fmtCh(TS.change);
+}
+
+function renderTS(){
+  $('outBout').textContent=fmt(TS.bout);
+  $('outChange').textContent=fmtCh(TS.change);
+  $('autoChk').checked=TS.auto;$('soundChk').checked=TS.sound;
+}
+document.querySelectorAll('[data-t]').forEach(b=>{
+  b.onclick=()=>{
+    const s=b.dataset.t,up=s.endsWith('+1');
+    if(s.startsWith('bout')){
+      const st=boutStep(up?TS.bout:TS.bout-1);
+      TS.bout=Math.max(BOUT_MIN,Math.min(BOUT_MAX,TS.bout+(up?st:-st)));
+      if(T.phase==='idle')T.left=TS.bout*1000;
+    }else TS.change=Math.max(0,Math.min(CH_MAX,TS.change+(up?5:-5)));
+    saveTS();renderTS();renderStats();tRender();
+  };
+});
+$('autoChk').onchange=e=>{TS.auto=e.target.checked;saveTS();};
+$('soundChk').onchange=e=>{TS.sound=e.target.checked;saveTS();if(TS.sound){audio();tone(880,.12,0);}};
+$('tStart').onclick=tPrimary;
+$('tReset').onclick=tReset;
+$('tCfg').onclick=openSheet;
+setInterval(()=>{if(T.running)tTick();},200);
 
 /* установка как приложение и работа без интернета */
 if('serviceWorker'in navigator&&location.protocol==='https:'){
@@ -637,13 +877,19 @@ if('serviceWorker'in navigator&&location.protocol==='https:'){
 }
 
 /* старт */
+loadTS();renderTS();
 const saved=load(),N0=saved?saved.N:15,P0=saved?saved.P:7;
 const first=buildSchedule(N0,P0,4);
 state={N:N0,P:P0,rounds:first.rounds,q:first.q,cur:saved?Math.min(Math.max(0,saved.cur|0),first.rounds.length-1):0};
 $('inpN').value=N0;$('inpP').value=P0;
 if(saved&&saved.wake)$('wakeChk').checked=true;
+/* таймер после перезагрузки страницы: продолжаем с того же места */
+try{const o=JSON.parse(localStorage.getItem(TKEY)||'null');
+  if(o&&['idle','bout','change','done'].includes(o.phase))T={...T,...o};}catch(e){}
+if(T.phase==='idle')T.left=TS.bout*1000;
 renderAll();
-if(saved&&saved.wake)keepOn().then(updateBadge);   /* если не вышло — сработает при первом касании */
+tTick(true);
+if((saved&&saved.wake)||timerActive())keepOn().then(updateBadge);   /* если не вышло — сработает при первом касании */
 </script>
 </body>
 </html>
