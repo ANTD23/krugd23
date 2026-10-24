@@ -9,6 +9,14 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="color-scheme" content="light dark">
+<script>
+/* тема ставится до отрисовки, чтобы при запуске не мигал белый экран */
+(function(){var m='auto';try{m=localStorage.getItem('krug.theme')||'auto';}catch(e){}
+  var d=m==='dark'||(m==='auto'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme=d?'dark':'light';
+  if(d)document.querySelector('meta[name=theme-color]').setAttribute('content','#000000');})();
+</script>
 <style>
 :root{
   --ink:#101418;
@@ -20,7 +28,53 @@
   --mat:#A8321F;
   --muted:#5C6B77;
   --pad:16px;
+  --bar:#14324B;
+  --row:#F6F8FA;
+  --veil:rgba(12,36,55,.45);
+  --tint:rgba(20,50,75,.08);
+  --tint2:rgba(20,50,75,.14);
+  color-scheme:light;
 }
+/* ---------- тёмная тема для AMOLED: чистый чёрный фон, пиксели не светятся ---------- */
+:root[data-theme="dark"]{
+  --ink:#E9EDF1;
+  --blue:#2B6CA8;
+  --blue-deep:#DCE8F3;
+  --soft:#0E141A;
+  --line:#26313B;
+  --paper:#000000;
+  --mat:#FF6450;
+  --muted:#8D99A4;
+  --bar:#000000;
+  --row:#080C10;
+  --veil:rgba(0,0,0,.72);
+  --tint:rgba(255,255,255,.08);
+  --tint2:rgba(255,255,255,.14);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] header{border-bottom:1px solid var(--line)}
+:root[data-theme="dark"] .tabs{border-bottom:1px solid var(--line)}
+:root[data-theme="dark"] .panel{border-top:1px solid var(--line)}
+@media(min-width:560px){:root[data-theme="dark"] .panel{border:1px solid var(--line)}}
+/* таймер в тёмной теме: цветные цифры на чёрном вместо ярких заливок */
+:root[data-theme="dark"] .timer[data-phase="bout"],
+:root[data-theme="dark"] .timer[data-phase="warn"]{background:#000;border:2px solid currentColor}
+:root[data-theme="dark"] .timer[data-phase="bout"]{color:#5AAEFF}
+:root[data-theme="dark"] .timer[data-phase="warn"]{color:#FF5A45}
+:root[data-theme="dark"] .timer[data-phase="bout"] .tlabel,
+:root[data-theme="dark"] .timer[data-phase="warn"] .tlabel{color:var(--ink)}
+:root[data-theme="dark"] .timer[data-phase="bout"] .tcfg,:root[data-theme="dark"] .timer[data-phase="warn"] .tcfg,
+:root[data-theme="dark"] .timer[data-phase="bout"] .tbar,:root[data-theme="dark"] .timer[data-phase="warn"] .tbar{background:var(--tint2)}
+:root[data-theme="dark"] .timer[data-phase="bout"] .tcfg,:root[data-theme="dark"] .timer[data-phase="warn"] .tcfg{color:var(--muted)}
+:root[data-theme="dark"] .timer[data-phase="bout"] .tbtns button:not(.ghost){background:#1F5D96;color:#fff}
+:root[data-theme="dark"] .timer[data-phase="warn"] .tbtns button:not(.ghost){background:#B8321F;color:#fff}
+:root[data-theme="dark"] .timer[data-phase="bout"] .tbtns button.ghost,
+:root[data-theme="dark"] .timer[data-phase="warn"] .tbtns button.ghost{background:var(--tint2);color:var(--ink)}
+:root[data-theme="dark"] .timer[data-phase="change"]{background:#000;color:#FFA040;border:2px dashed #FFA040}
+:root[data-theme="dark"] .timer[data-phase="change"] .tbtns button:not(.ghost){background:#B5651D}
+:root[data-theme="dark"] .timer[data-phase="idle"] .tclock{color:var(--ink)}
+:root[data-theme="dark"] .timer[data-phase="paused"],
+:root[data-theme="dark"] .timer[data-phase="done"]{background:#000;color:var(--ink)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
 body{
@@ -32,12 +86,12 @@ body{
   display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;
 }
 main{flex:1 0 auto}
-button,input{font:inherit;color:inherit}
+button,input,select{font:inherit;color:inherit}
 button{border:0;background:none;cursor:pointer}
 
 /* ---------- header ---------- */
 header{
-  background:var(--blue);color:#fff;
+  background:var(--bar);color:#fff;
   padding:calc(10px + env(safe-area-inset-top)) var(--pad) 10px;
   display:flex;align-items:center;gap:12px;
 }
@@ -56,7 +110,7 @@ header h1{
 .cfg svg{width:15px;height:15px;flex:0 0 auto}
 
 /* ---------- tabs ---------- */
-.tabs{display:flex;background:var(--blue);padding:0 var(--pad) 0}
+.tabs{display:flex;background:var(--bar);padding:0 var(--pad) 0}
 .tabs button{
   flex:1;padding:11px 4px 12px;color:rgba(255,255,255,.62);
   font-size:15px;font-weight:500;border-bottom:3px solid transparent;
@@ -105,17 +159,17 @@ header,.tabs,.nav{flex:0 0 auto}
 }
 .ttop{display:flex;align-items:center;gap:10px;min-height:28px}
 .tlabel{flex:1;font-size:15px;font-weight:600;letter-spacing:.01em}
-.tcfg{font-size:13px;padding:5px 9px;border-radius:7px;background:rgba(20,50,75,.08);color:inherit;white-space:nowrap}
+.tcfg{font-size:13px;padding:5px 9px;border-radius:7px;background:var(--tint);color:inherit;white-space:nowrap}
 .tclock{
   font-size:76px;font-weight:800;line-height:1;text-align:center;
   font-variant-numeric:tabular-nums;letter-spacing:-.02em;padding:4px 0 8px;
 }
 @media(max-width:360px){.tclock{font-size:68px}}
-.tbar{height:6px;border-radius:3px;background:rgba(20,50,75,.14);overflow:hidden}
+.tbar{height:6px;border-radius:3px;background:var(--tint2);overflow:hidden}
 .tbar i{display:block;height:100%;width:100%;background:currentColor;transform-origin:left center}
 .tbtns{display:flex;gap:10px;margin-top:10px}
 .tbtns button{flex:1;min-height:54px;border-radius:9px;font-size:18px;font-weight:700;background:var(--blue);color:#fff}
-.tbtns button.ghost{flex:0 0 34%;background:rgba(20,50,75,.1);color:inherit;font-weight:600;font-size:16px}
+.tbtns button.ghost{flex:0 0 34%;background:var(--tint2);color:inherit;font-weight:600;font-size:16px}
 .tbtns button:disabled{opacity:.35}
 .timer[data-phase="bout"],.timer[data-phase="warn"]{color:#fff;border-color:transparent}
 .timer[data-phase="bout"]{background:var(--blue)}
@@ -165,7 +219,7 @@ header,.tabs,.nav{flex:0 0 auto}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
 th,td{border:1px solid var(--line);padding:6px 5px;text-align:center;font-size:14px;white-space:nowrap}
 thead th{background:var(--soft);font-weight:600;font-size:13px;position:sticky;top:0}
-tbody tr:nth-child(even) td{background:#F6F8FA}
+tbody tr:nth-child(even) td{background:var(--row)}
 td.rn{font-weight:700}
 td.rs{color:var(--mat);white-space:normal;min-width:150px;font-size:13px;text-align:left}
 .tools{display:flex;gap:10px;padding:16px 0 0}
@@ -177,7 +231,7 @@ td.rs{color:var(--mat);white-space:normal;min-width:150px;font-size:13px;text-al
 
 /* ---------- settings sheet ---------- */
 .sheet{
-  position:fixed;inset:0;background:rgba(12,36,55,.45);
+  position:fixed;inset:0;background:var(--veil);
   display:none;align-items:flex-end;justify-content:center;z-index:20;
 }
 .sheet.open{display:flex}
@@ -213,6 +267,12 @@ td.rs{color:var(--mat);white-space:normal;min-width:150px;font-size:13px;text-al
 .wake{display:flex;align-items:center;gap:10px;padding:12px 0 0;border-top:1px solid var(--line);margin-top:12px}
 .wake input{width:22px;height:22px}
 .wake label{font-size:15px}
+.theme{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);margin-top:12px}
+.theme>span{flex:1;font-size:16px}
+.seg{display:flex;border:1.5px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{min-height:42px;padding:0 12px;font-size:15px;font-weight:600;color:var(--muted);background:var(--paper)}
+.seg button+button{border-left:1.5px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--blue);color:#fff}
 
 .busy{padding:40px 0;text-align:center;color:var(--muted)}
 [hidden]{display:none !important}
@@ -224,6 +284,7 @@ td.rs{color:var(--mat);white-space:normal;min-width:150px;font-size:13px;text-al
 
 /* ---------- print ---------- */
 @media print{
+  :root[data-theme]{--paper:#fff;--ink:#000;--line:#000;--muted:#333;--mat:#000;--row:#f2f2f2;--soft:#e0e0e0;color-scheme:light}
   @page{size:A4 landscape;margin:10mm}
   header,.tabs,.nav,.tools,.sheet,.note,#scrollHint{display:none !important}
   main{padding:0}
@@ -376,6 +437,14 @@ td.rs{color:var(--mat);white-space:normal;min-width:150px;font-size:13px;text-al
     </div>
     <p class="hint">Таймер настраивается сразу, расписание пересчитывать не нужно.</p>
 
+    <div class="theme">
+      <span>Тема</span>
+      <div class="seg" id="themeSeg" role="group" aria-label="Тема">
+        <button type="button" data-theme-set="auto">Авто</button>
+        <button type="button" data-theme-set="light">Светлая</button>
+        <button type="button" data-theme-set="dark">Тёмная</button>
+      </div>
+    </div>
     <div class="wake" id="wakeRow">
       <input type="checkbox" id="wakeChk" autocomplete="off">
       <label for="wakeChk">Не гасить экран во время тренировки</label>
@@ -957,6 +1026,22 @@ setInterval(()=>{if(T.running)tTick();},200);
 if('serviceWorker'in navigator&&location.protocol==='https:'){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
+
+/* тема */
+const THKEY='krug.theme';
+const mqDark=window.matchMedia?matchMedia('(prefers-color-scheme: dark)'):null;
+function themeMode(){try{return localStorage.getItem(THKEY)||'auto';}catch(e){return 'auto';}}
+function applyTheme(){
+  const m=themeMode(),d=m==='dark'||(m==='auto'&&mqDark&&mqDark.matches);
+  document.documentElement.dataset.theme=d?'dark':'light';
+  document.querySelector('meta[name=theme-color]').setAttribute('content',d?'#000000':'#14324B');
+  document.querySelectorAll('[data-theme-set]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.themeSet===m));
+}
+document.querySelectorAll('[data-theme-set]').forEach(b=>b.onclick=()=>{
+  try{localStorage.setItem(THKEY,b.dataset.themeSet);}catch(e){}applyTheme();});
+if(mqDark){const f=()=>{if(themeMode()==='auto')applyTheme();};
+  mqDark.addEventListener?mqDark.addEventListener('change',f):mqDark.addListener(f);}
+applyTheme();
 
 /* старт */
 loadTS();renderTS();
