@@ -152,7 +152,10 @@ header,.tabs,.nav{flex:0 0 auto}
   color:var(--mat);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;
 }
 /* ---------- timer ---------- */
+/* таймер прилипает к верху экрана, пары прокручиваются под ним */
 .timer{
+  position:sticky;top:calc(6px + env(safe-area-inset-top));z-index:4;
+  box-shadow:0 -12px 0 6px var(--paper);
   margin:12px 0 0;border-radius:12px;padding:10px 14px 12px;
   background:var(--soft);color:var(--blue-deep);border:1.5px solid var(--line);
   transition:background-color .2s,color .2s;
@@ -178,6 +181,7 @@ header,.tabs,.nav{flex:0 0 auto}
 .timer[data-phase="bout"] .tbar,.timer[data-phase="warn"] .tbar{background:rgba(255,255,255,.22)}
 .timer[data-phase="bout"] .tbtns button:not(.ghost),.timer[data-phase="warn"] .tbtns button:not(.ghost){background:#fff;color:var(--blue-deep)}
 .timer[data-phase="bout"] .tbtns button.ghost,.timer[data-phase="warn"] .tbtns button.ghost{background:rgba(255,255,255,.2)}
+.timer.stuck{box-shadow:0 -12px 0 6px var(--paper),0 8px 14px -6px rgba(0,0,0,.35)}
 .timer[data-phase="change"]{background:#FBEFEC;border:1.5px dashed var(--mat);color:var(--mat)}
 .timer[data-phase="paused"]{background:var(--paper);border-color:var(--blue)}
 .timer[data-phase="paused"] .tclock{opacity:.55}
@@ -237,7 +241,7 @@ td.rs{color:var(--mat);white-space:normal;min-width:150px;font-size:13px;text-al
 .sheet.open{display:flex}
 .panel{
   background:var(--paper);width:100%;max-width:520px;
-  border-radius:14px 14px 0 0;padding:20px var(--pad) calc(20px + env(safe-area-inset-bottom));
+  border-radius:14px 14px 0 0;padding:20px var(--pad) 0;
   max-height:92vh;overflow:auto;
 }
 @media(min-width:560px){.sheet{align-items:center}.panel{border-radius:14px}}
@@ -260,6 +264,14 @@ td.rs{color:var(--mat);white-space:normal;min-width:150px;font-size:13px;text-al
   background:var(--blue);color:#fff;font-size:17px;font-weight:600;
 }
 .go:disabled{opacity:.4}
+/* кнопки внизу окна настроек всегда на виду */
+.actions{
+  position:sticky;bottom:0;z-index:2;background:var(--paper);
+  margin:8px calc(-1 * var(--pad)) 0;padding:4px var(--pad) calc(10px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--line);
+}
+.actions .go{margin-top:10px}
+.actions .close{margin-top:2px}
 .close{width:100%;min-height:44px;margin-top:8px;color:var(--muted);font-size:15px}
 .stats{border-top:1px solid var(--line);margin-top:16px;padding-top:12px;font-size:14px;color:var(--muted)}
 .stats div{display:flex;justify-content:space-between;padding:3px 0}
@@ -451,8 +463,10 @@ td.rs{color:var(--mat);white-space:normal;min-width:150px;font-size:13px;text-al
     </div>
     <p class="hint" id="wakeMsg"></p>
 
-    <button class="go" id="goBtn">Составить расписание</button>
-    <button class="close" id="closeBtn">Закрыть</button>
+    <div class="actions">
+      <button class="go" id="goBtn">Составить расписание</button>
+      <button class="close" id="closeBtn">Закрыть</button>
+    </div>
   </div>
 </div>
 
@@ -1021,6 +1035,12 @@ $('tStart').onclick=tPrimary;
 $('tReset').onclick=tReset;
 $('tCfg').onclick=openSheet;
 setInterval(()=>{if(T.running)tTick();},200);
+/* отметка «прилип»: появляется тень, видно, что пары уходят под таймер */
+(function(){const el=$('timer');let raf=0;
+  const chk=()=>{raf=0;const top=el.getBoundingClientRect().top,st=parseFloat(getComputedStyle(el).top)||0;
+    el.classList.toggle('stuck',top<=st+0.5&&window.scrollY>0);};
+  window.addEventListener('scroll',()=>{if(!raf)raf=requestAnimationFrame(chk);},{passive:true});
+  window.addEventListener('resize',chk);})();
 
 /* установка как приложение и работа без интернета */
 if('serviceWorker'in navigator&&location.protocol==='https:'){
